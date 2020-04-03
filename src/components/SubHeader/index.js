@@ -3,20 +3,23 @@ import { View, StyleSheet, Text, Image } from 'react-native';
 import  Button  from '../Button/index';
 
 
-const SubHeader = () => (
+const SubHeader = ({image, title, autor, button1, button2, button1Click}) => (
     <View style={styles.container}>
         <Image 
             style={styles.avatar}
-            source={{ uri: 'https://thumbs.dreamstime.com/z/do-retrato-masculino-do-avatar-do-%C3%ADcone-do-perfil-pessoa-ocasional-58249394.jpg '}}
+            source={{ uri: image}}
         />
 
         <View style={styles.profileInfo}>
-            <Text style={styles.name}>Daniel Huebes</Text>
-            <Text style={styles.bio}>Analista de Sistema na Senior</Text>
+            <Text style={styles.name}>{title}</Text>
+            <Text style={styles.bio}>{autor}</Text>
 
             <View style={styles.buttonContainer}>
-                <Button style={styles.firstButton}>Mensagem</Button>
-                <Button type="outline">Seguir</Button>
+                <Button style={styles.firstButton} onPress={button1Click}>{button1}</Button>
+                { (button2 != '' &&
+                    <Button type="outline">{button2}</Button>
+                )}
+                
             </View>
         </View>
     </View>
@@ -32,9 +35,9 @@ const styles = StyleSheet.create({
     },
 
     avatar: {
-        width: 68,
-        height: 68,
-        borderRadius: 34,
+        width: 60,
+        height: 80,
+        //borderRadius: 40,
         marginRight: 15
     },
 
