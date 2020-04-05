@@ -2,6 +2,7 @@ import React, { Component, useEffect } from 'react'
 import { View, Image, StyleSheet, Text } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler';
 import SubHeader from '../SubHeader';
+import BookOptions from '../BookOptions';
 import api from '../../services/api';
 
 export default class BookDetail extends Component {
@@ -57,6 +58,10 @@ export default class BookDetail extends Component {
                 <SubHeader image={product.thumbnail} title={product.title} 
                            autor={product.authors} button1={labelButton} button2=""
                            button1Click={favBook ? this.removeClickButton : this.addClickButton} />
+                
+                { favBook && 
+                    <BookOptions product={product}></BookOptions>
+                }
                 
                 <View style={styles.resumeContainer}> 
                     <Text style={styles.title}>Sinopse</Text>

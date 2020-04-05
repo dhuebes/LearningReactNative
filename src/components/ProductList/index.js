@@ -17,6 +17,15 @@ export default class ProductList extends Component {
         findNewBook : false
     };
 
+    constructor(props) {
+        super(props);
+
+        //console.log(this.props.route?.params?.findNewBook);
+        if (!this.props.route?.params?.findNewBook) {
+            this.loadFavBooks();
+        }
+    }
+
     loadFavBooks = async () => {
         try {
             const response = await api.get('https://e3wvo864a2.execute-api.us-east-1.amazonaws.com/default/getFavBooks');
@@ -26,40 +35,13 @@ export default class ProductList extends Component {
             if (response.data.books.length == 0) {
                 this.setState({ infoMessage: 'Nenhum livro adicionado.' });
             } else {
-                if (this.state.products.length != response.data.books.length) {
-                    this.setState({ products: response.data.books });
-                }
+                console.log(response.data.books);
+                //if (this.state.products.length != response.data.books.length) {
+                this.setState({ products: response.data.books });
             }
         } catch (response) {
             //alert(JSON.stringify(response.originalError.message));
             this.setState({ errorMessage: 'Não foi possível carregar.\n' + response.originalError.message });
-        }
-    }
-
-    constructor(props) {
-        super(props);
-
-        //console.log(this.props.route?.params?.findNewBook);
-        if (!this.props.route?.params?.findNewBook) {
-            this.loadFavBooks();
-        }
-
-    }
-
-    componentDidMount() {
-        //console.log('componentDidMount');
-        this._unsubscribe = this.props.navigation.addListener('focus', () => {            
-            if (!this.props.route?.params?.findNewBook) {
-                this.loadFavBooks();
-            }
-        });
-          
-    }
-    componentWillUnmount() {
-        //console.log('componentWillUnmount');
-        //console.log(this.props.route?.params?.findNewBook);
-        if (!this.props.route?.params?.findNewBook) {
-            this.loadFavBooks();
         }
     }
 
@@ -85,6 +67,23 @@ export default class ProductList extends Component {
         } catch (response) {
             //alert(JSON.stringify(response.originalError.message));
             this.setState({ errorMessage: 'Não foi possível carregar.\n' + response.originalError.message });
+        }
+    }
+
+    componentDidMount() {
+        //console.log('componentDidMount');
+        this._unsubscribe = this.props.navigation.addListener('focus', () => {            
+            if (!this.props.route?.params?.findNewBook) {
+                this.loadFavBooks();
+            }
+        });
+          
+    }
+    componentWillUnmount() {
+        //console.log('componentWillUnmount');
+        //console.log(this.props.route?.params?.findNewBook);
+        if (!this.props.route?.params?.findNewBook) {
+            this.loadFavBooks();
         }
     }
 

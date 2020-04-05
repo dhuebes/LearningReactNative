@@ -6,8 +6,10 @@ const { width } = Dimensions.get('window');
 
 const Product = ({ product/*: { image, title, description, price }*/, navigation, favBook}) => (
     
-    <TouchableOpacity style={styles.container} onPress={() => navigation.push('Detalhe', {product: product, favBook: favBook, navigation: navigation})}>
-        <View style={styles.container} >
+    <TouchableOpacity 
+        style={styles.container} 
+        onPress={() => navigation.push('Detalhe', {product: product, favBook: favBook, navigation: navigation})}>
+        <View style={[styles.container, product.status == 2 ? {opacity: 0.1} : {}]} >
             <View style={styles.imageContainer}>
             <Image source={{ uri : product.thumbnail }} style={styles.image}/>
             </View>
@@ -33,6 +35,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowOffset: { x: 0, y: 0 },
         width: (width - 45) / 2,
+        //opacity: 0.3
     },
 
     image: {
