@@ -6,6 +6,11 @@ import BookOptions from '../BookOptions';
 import api from '../../services/api';
 
 export default class BookDetail extends Component {
+    state = {
+        errorMessage : null,
+        infoMessage : null,
+    };
+
     constructor(props) {
         super(props);
     }
@@ -15,6 +20,7 @@ export default class BookDetail extends Component {
             const response = await api.post('https://jni93up6uf.execute-api.us-east-1.amazonaws.com/default/addFavBook', {
                 userId: '0',
                 id: this.props.route.params.product.id,
+                status: 0,
             });
             
             const nav = this.props.route.params.navigation;
@@ -30,21 +36,23 @@ export default class BookDetail extends Component {
     removeClickButton = async () => {
         try {
             const response = await api.delete('https://b2e4mzteu3.execute-api.us-east-1.amazonaws.com/default/removeFavBook', {
-                userId: '0',
+                userId: "0",
                 id: this.props.route.params.product.id,
             });
             
+            const nav = this.props.route.params.navigation;
+            nav.navigate('Meus Livros');
             //alert(JSON.stringify(response));
             //this.setState({ products: response.data.books });
         } catch (response) {
-            //alert(JSON.stringify(response.message));
-            this.setState({ errorMessage: 'Não foi possível carregar.\n' + response.message });
+            //alert(JSON.stringify(response));
+            this.setState({ errorMessage: 'Não foi possível carregar.\n' + response.originalError.message });
         }        
     }
 
     observer = ({ value, didUpdate }) => {
         useEffect(() => {
-          console.log('aaa');
+          //console.log('aaa');
         }, [])
         return null // component does not render anything
     }
@@ -59,17 +67,20 @@ export default class BookDetail extends Component {
                            autor={product.authors} button1={labelButton} button2=""
                            button1Click={favBook ? this.removeClickButton : this.addClickButton} />
                 
+                { this.state.errorMessage && 
+                    <Text style={styles.error}>{this.state.errorMessage}</Text>    
+                }
+
                 { favBook && 
                     <BookOptions product={product}></BookOptions>
                 }
                 
-                <View style={styles.resumeContainer}> 
-                    <Text style={styles.title}>Sinopse</Text>
-
-                    <ScrollView>
+                <View style={[styles.resumeContainer, favBook ? { marginBottom: 240 } : { marginBottom: 145 }]}>
+                    <ScrollView showsVerticalScrollIndicator={false}>
+                        <Text style={styles.title}>Sinopse</Text>                
                         <View>
                             <Text style={styles.resume}>{product.description}</Text>
-                        </View>
+                        </View>                
                     </ScrollView>
                 </View>
             </View>
@@ -84,8 +95,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFF',
         borderBottomWidth: 1,
         borderColor: '#eee',
-        //flexDirection: "row",
-        alignContent: "center"
+        flexDirection: "row",
+        alignContent: "center",
+        paddingBottom: 100,
     },
     
     title: {
@@ -97,7 +109,16 @@ const styles = StyleSheet.create({
     },
 
     resume: {
-        fontSize: 14,
-        textAlign: 'center',     
-    }
+        fontSize: 16,
+        textAlign: 'justify',
+    },
+
+    error: {
+        padding: 10,
+        width: '100%',
+        flexDirection: "row",
+        justifyContent: "center",
+        backgroundColor: '#e37f7f',
+        textAlign: "center"
+    },
 });

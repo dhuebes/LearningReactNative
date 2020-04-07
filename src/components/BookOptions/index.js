@@ -71,7 +71,7 @@ export default function BookOptions() {
 
 const styles = StyleSheet.create({
     buttonContainer: {
-        padding: 15,
+        padding: 8,
         backgroundColor: '#FFF',
         borderBottomWidth: 1,
         borderColor: '#eee',

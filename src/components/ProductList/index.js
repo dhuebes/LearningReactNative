@@ -1,12 +1,9 @@
 import React, { Component } from 'react'
-import { View, StyleSheet, Text, TextInput } from 'react-native'
+import { View, StyleSheet, Text, TextInput, FlatList, ActivityIndicator, Dimensions } from 'react-native'
 import Product from './Product/index'
 import api from '../../services/api';
-import Header from '../Header';
 import Button from '../Button';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { createStackNavigator } from '@react-navigation/stack';
-import { ScrollView } from 'react-native-gesture-handler';
 
 export default class ProductList extends Component {
     state = {
@@ -14,28 +11,39 @@ export default class ProductList extends Component {
         searchTerm: 'Sonho Grande',
         errorMessage : null,
         infoMessage : null,
-        findNewBook : false
+        findNewBook : false,
+        page : 0,
+        loading: false,
+        loadingInfinite: false,
+        total: 1
     };
+    _isMounted = false;
 
     constructor(props) {
         super(props);
 
-        //console.log(this.props.route?.params?.findNewBook);
+        console.log('constructor');
         if (!this.props.route?.params?.findNewBook) {
             this.loadFavBooks();
         }
     }
 
     loadFavBooks = async () => {
+    
         try {
-            const response = await api.get('https://e3wvo864a2.execute-api.us-east-1.amazonaws.com/default/getFavBooks');
+            //this.state.products = [];  
+            this.setState({ loading: true });
+            this.state.loading = true;            
+            const response = await api.get(`https://e3wvo864a2.execute-api.us-east-1.amazonaws.com/default/getFavBooks`, {
+                getAllBooks: this.props.showAllBooks
+            });
         
             //alert(JSON.stringify(response));
             //this.setState({ products: [] });
             if (response.data.books.length == 0) {
                 this.setState({ infoMessage: 'Nenhum livro adicionado.' });
             } else {
-                console.log(response.data.books);
+                //console.log(response.data.books);
                 //if (this.state.products.length != response.data.books.length) {
                 this.setState({ products: response.data.books });
             }
@@ -43,19 +51,26 @@ export default class ProductList extends Component {
             //alert(JSON.stringify(response.originalError.message));
             this.setState({ errorMessage: 'Não foi possível carregar.\n' + response.originalError.message });
         }
+        this.setState({ loading: false });
+
+        
     }
 
     searchClick = async () => {
-        this.setState({ products: [] });
-        this.setState({ errorMessage: undefined });
+        this.setState({ page: 1 });
+        this.setState({ errorMessage: null });
         try {
+            this.setState({ loading: true });
+            this.setState({ products: [] });
             const response = await api.post('https://wtvlui0j8i.execute-api.us-east-1.amazonaws.com/default/searchBooks', {
-                term: this.state.searchTerm                
+                term: this.state.searchTerm,
+                page: 0
             });
         
             //alert(JSON.stringify(response));
             //alert(JSON.stringify(response.config.data));
             //alert(response.data);
+            this.setState({ total: response.data.total });
             if (response.data.books == 0) {
                 this.setState({ infoMessage: 'Nenhum livro encontrado.' });
                 this.setState({products: []});
@@ -68,30 +83,63 @@ export default class ProductList extends Component {
             //alert(JSON.stringify(response.originalError.message));
             this.setState({ errorMessage: 'Não foi possível carregar.\n' + response.originalError.message });
         }
+        this.setState({ loadingInfinite: false });
+        this.setState({ loading: false });
+    }
+
+    loadMore = async () => {
+        //console.log('loadMore');
+        if (this.props.route?.params?.findNewBook) {
+            //alert(this.state.loading + ' - ' + this.state.total + ' - ' + this.state.products.length);
+            if (this.state.loading) { return; }
+            if (this.state.total > 0 && this.state.products.length == this.state.total) {
+                return 
+            }
+
+            this.setState({ loadingInfinite: true });
+            this.setState({ loading: true });
+            const response = await api.post('https://wtvlui0j8i.execute-api.us-east-1.amazonaws.com/default/searchBooks', {
+                term: this.state.searchTerm,
+                page: this.state.page             
+            });
+
+            //alert(response.data.books);
+
+            this.state.products = this.state.products.concat(response.data.books);
+            this.setState({ page: this.state.page+1 });
+            this.setState({ loadingInfinite: false });
+            this.setState({ loading: false });
+            //console.log(this.state.page);
+        }   
     }
 
     componentDidMount() {
+        //console.log(this._isMounted);
+        this._isMounted = true;
+
         //console.log('componentDidMount');
-        this._unsubscribe = this.props.navigation.addListener('focus', () => {            
-            if (!this.props.route?.params?.findNewBook) {
-                this.loadFavBooks();
+        this._unsubscribe = this.props.navigation.addListener('focus', () => {      
+            //console.log('focused');   
+            if (this._isMounted) {
+                if (!this.props.route?.params?.findNewBook) {
+                    this.loadFavBooks();
+                }    
             }
         });
+
+
           
     }
     componentWillUnmount() {
+        this._isMounted = false;
         //console.log('componentWillUnmount');
-        //console.log(this.props.route?.params?.findNewBook);
-        if (!this.props.route?.params?.findNewBook) {
-            this.loadFavBooks();
-        }
     }
 
     //  <Header title="Buscar livro" />
     render() {
         return (
-            <ScrollView>
-                <View style={styles.global}>
+            <View style={styles.global}>
+                <View>
                     { this.props.route?.params?.findNewBook && 
                         <View style={ styles.containerSeach }>
                             <TextInput 
@@ -109,6 +157,62 @@ export default class ProductList extends Component {
                         </View>
                     }
 
+                    
+                    <View style={styles.booksListContainer}>
+                        <FlatList                      
+                            style={this.props.route?.params?.findNewBook ? {marginBottom: 115} : {marginBottom: 0}}
+                            data={this.state.products}  
+                            keyExtractor={product => String(product.id)}
+                            numColumns={2}
+                            onEndReached={this.loadMore}
+                            onEndReachedThreshold={0.2}
+                            bounces={false}
+                            renderItem={({item: product}) => (
+                                
+                                <View style={styles.container}>
+                                    
+                                    <Product 
+                                        key={product.id} 
+                                        product={product} 
+                                        navigation={this.props.navigation} 
+                                        favBook={!this.props.route?.params?.findNewBook}
+                                    />
+                                    
+                                </View>
+                            )}
+                        />
+                    </View>    
+                    
+
+
+                    { this.state.errorMessage && 
+                        <Text style={styles.error}>{this.state.errorMessage}</Text>
+                    }
+                    { this.state.infoMessage && 
+                        <Text style={styles.info}>{this.state.infoMessage}</Text>
+                    }
+                </View>    
+                
+
+                { this.state.loading && /*this.state.loadingInfinite && */
+                    <View style={styles.containerSpinner}>     
+                    </View>    
+                }
+                
+                { this.state.loading && 
+                    <ActivityIndicator 
+                        style={[styles.spinner]}
+                        size="large" 
+                        color="#000000" 
+                    />       
+                }
+            </View>
+        )
+    }
+}
+
+/*
+
                     <View style={styles.container}>
                         { this.state.products && this.state.products.map(product => 
                             <Product 
@@ -125,11 +229,7 @@ export default class ProductList extends Component {
                             <Text style={styles.info}>{this.state.infoMessage}</Text>
                         }
                     </View>
-                </View>
-            </ScrollView>
-        )
-    }
-}
+                    */
 
 const styles = StyleSheet.create({
     global: {
@@ -137,22 +237,27 @@ const styles = StyleSheet.create({
         //alignSelf
         //flexWrap: "wrap"
         //alignContent
-        flex: 1,
+        height: Dimensions.get("window").height - 140,
         backgroundColor: '#F8F8FA',
         //alignItems: 'center',
         //justifyContent: 'center',
     },
     container: {
-        padding: 15,
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "space-between"
+        marginLeft: 10,
+        marginRight: 10
+        //flexDirection: "row",
+        //flexWrap: "wrap",
+        //justifyContent: "space-between"
     },
     containerSeach: {
         flexDirection: "row",
-        marginTop: 15,
+        marginTop: 10,
         marginLeft: 10,
         marginRight: 10
+    },
+    booksListContainer: {
+        paddingTop: 15,
+        
     },
     searchText: {
         flex: 1,
@@ -181,5 +286,27 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         textAlign: "center",
         borderRadius: 30,
+    },
+
+    containerSpinner: {
+        backgroundColor: '#000000',
+        opacity: 0.2,
+        position: 'absolute', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        bottom: 0, 
+    },
+    
+    spinner: {
+        position: 'absolute', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        bottom: 0, 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        opacity: 1 ,
+        //backgroundColor: '#0000FF'
     }
 });

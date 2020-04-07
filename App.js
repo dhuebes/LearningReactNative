@@ -1,5 +1,5 @@
-import React, { Component } from 'react';
-import { StyleSheet, Text, View, Button, AsyncStorage, ScrollView } from 'react-native';
+import React, { Component, useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { render } from 'react-dom';
 import api from './src/services/api';
 import Header from './src/components/Header';
@@ -8,27 +8,28 @@ import ProductList from './src/components/ProductList';
 import Tabs from './src/components/Tabs';  
 
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { Feather } from '@expo/vector-icons'
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { createStackNavigator } from '@react-navigation/stack';
 import BookDetail from './src/components/BookDetail';
-//import { navigationRef } from './src/components/RootNavigation';
 
 const Tab = createBottomTabNavigator();
 
-
-
-const Remover = () => {
-  alert('Removido');
-}
-
-//<SubHeader title="Nome do Livro" autor="Autor" button1="Remover" button2="Ver" button1Click={Remover} button2Click={Remover}/>
-function HomeScreen({ navigation }) {
+function MyFavBooks({ navigation }) {
   return (
     <View>
-      <ProductList findNewBook={false} navigation={navigation}></ProductList>
+      <ProductList findNewBook={false} navigation={navigation} showAllBooks={false}></ProductList>
+    </View>
+  );
+}
+
+function MyAllFavBooks({ navigation }) {
+  return (
+    <View>
+      <ProductList findNewBook={false} navigation={navigation} showAllBooks={true}></ProductList>
     </View>
   );
 }
@@ -36,14 +37,24 @@ function HomeScreen({ navigation }) {
 const Stack = createStackNavigator();
 export const navigationRef = React.createRef();
 
+
 function AppNavigation() {
+  const [showAllBooks, setshowAllBooks] = useState(false);
+
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator initialRouteName="Meus Livros">
-        <Stack.Screen name="Meus Livros" component={HomeScreen} 
-          options={ 
-              {headerTitleAlign: 'center'}
-          }
+        <Stack.Screen 
+          name="Meus Livros" 
+          component={showAllBooks ? MyAllFavBooks : MyFavBooks} 
+          options={{
+              headerTitleAlign: 'center',
+              headerRight: () => (
+                <TouchableOpacity>
+                  <Feather name="book-open" size={28} style={styles.headerIcon} onPress={() => setshowAllBooks(!showAllBooks)}/>
+                </TouchableOpacity>
+              )
+          }}
         />
 
         <Stack.Screen name="Buscar" component={ProductList} 
@@ -71,6 +82,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8FA',
     marginTop: 40
   },
+
+  headerIcon: {
+    marginRight: 20,
+  }
 
 });
 

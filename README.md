@@ -9,9 +9,9 @@ Bellow what is included:
 - Tab Navigator with react-navigation
 
 About the APP:
-- The object is create personal library
+- The objective is create personal library
 - Can search for any book that exist in Google Books
+- Tag books already read
 
 What next:
-- Tag books already read
 - Tag borrowed books and indicate for
