@@ -1,9 +1,12 @@
 import React, { Component } from 'react'
-import { View, StyleSheet, Text, TextInput, FlatList, ActivityIndicator, Dimensions } from 'react-native'
+import { View, StyleSheet, Text, TextInput, FlatList, 
+        ActivityIndicator, Dimensions, AsyncStorage, 
+        TouchableOpacity } from 'react-native';       
 import Product from './Product/index'
 import api from '../../services/api';
 import Button from '../Button';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { Feather } from '@expo/vector-icons';
 
 export default class ProductList extends Component {
     state = {
@@ -22,38 +25,55 @@ export default class ProductList extends Component {
     constructor(props) {
         super(props);
 
-        console.log('constructor');
-        if (!this.props.route?.params?.findNewBook) {
-            this.loadFavBooks();
-        }
+        this._bootstrapAsync();
     }
 
-    loadFavBooks = async () => {
-    
-        try {
-            //this.state.products = [];  
-            this.setState({ loading: true });
-            this.state.loading = true;            
-            const response = await api.get(`https://e3wvo864a2.execute-api.us-east-1.amazonaws.com/default/getFavBooks`, {
-                getAllBooks: this.props.showAllBooks
-            });
-        
-            //alert(JSON.stringify(response));
-            //this.setState({ products: [] });
-            if (response.data.books.length == 0) {
-                this.setState({ infoMessage: 'Nenhum livro adicionado.' });
-            } else {
-                //console.log(response.data.books);
-                //if (this.state.products.length != response.data.books.length) {
-                this.setState({ products: response.data.books });
+	_bootstrapAsync = async () => {
+		try {
+            let userId = await AsyncStorage.getItem('@socialbook:userData:userId');
+            this.state.userId = userId;
+            //console.log(this.state);
+            if (!this.props.route?.params?.findNewBook) {
+                this.loadFavBooks();
             }
-        } catch (response) {
-            //alert(JSON.stringify(response.originalError.message));
-            this.setState({ errorMessage: 'Não foi possível carregar.\n' + response.originalError.message });
-        }
-        this.setState({ loading: false });
+		} catch (error) {
+			console.log('Error getting user:',error);
+		}
+	}
 
-        
+    loadFavBooks = async () => {
+        //console.log(' aa : '+ this.state.userId);
+        if (this.state.userId) {
+            //console.log(' bb : '+ this.state.userId);
+            try {
+                //this.state.products = [];  
+                //console.log(this.state.userId);
+                this.setState({ loading: true });
+                this.state.loading = true;            
+                const response = await api.get(`https://e3wvo864a2.execute-api.us-east-1.amazonaws.com/default/getFavBooks`, {
+                    getAllBooks: this.props.showAllBooks,
+                    userId: this.state.userId
+                });
+            
+                //alert(JSON.stringify(response));
+                //this.setState({ products: [] });
+                //console.log(response.data.books.length);
+                if (response.data.books.length == 0) {
+                    this.setState({ products: [] });
+                    this.setState({ infoMessage: `Nenhum livro adicionado.\nClique em + para adicionar.` });
+                } else {
+                    //console.log(response.data.books);
+                    //if (this.state.products.length != response.data.books.length) {
+                    this.setState({ infoMessage: null });
+                    this.setState({ errorMessage: null });
+                    this.setState({ products: response.data.books });
+                }
+            } catch (response) {
+                //alert(JSON.stringify(response.originalError.message));
+                this.setState({ errorMessage: 'Não foi possível carregar.\n' + response.originalError.message });
+            }
+            this.setState({ loading: false });
+        }   
     }
 
     searchClick = async () => {
@@ -69,9 +89,9 @@ export default class ProductList extends Component {
         
             //alert(JSON.stringify(response));
             //alert(JSON.stringify(response.config.data));
-            //alert(response.data);
+            //console.log('searchClick');
             this.setState({ total: response.data.total });
-            if (response.data.books == 0) {
+            if (response.data.books.length == 0) {
                 this.setState({ infoMessage: 'Nenhum livro encontrado.' });
                 this.setState({products: []});
             } else {
@@ -186,10 +206,28 @@ export default class ProductList extends Component {
 
 
                     { this.state.errorMessage && 
-                        <Text style={styles.error}>{this.state.errorMessage}</Text>
+                        <View style={styles.errorContainer}>
+                            <Text style={styles.error}>{this.state.errorMessage}</Text>
+
+                            <TouchableOpacity 
+                                onPress={this.loadFavBooks}
+                                style={styles.refreshContainer}>
+                                <Feather name="refresh-cw" size={20}/>
+                                <Text style={{ fontSize: 20, marginLeft: 6 }}>Tentar novamente</Text>
+                            </TouchableOpacity>
+
+                        </View>    
                     }
-                    { this.state.infoMessage && 
+                    { this.state.infoMessage &&
                         <Text style={styles.info}>{this.state.infoMessage}</Text>
+                    }
+
+                    { this.state.infoMessage && !this.props.route?.params?.findNewBook &&
+                        <View style={styles.infoContainer }>
+                            <Text style={{fontSize: 16}}>Clique em </Text>
+                            <Feather style={{fontSize: 18}} name="book-open"/>
+                            <Text style={{fontSize: 16}}> para mostrar os livros já lidos</Text>
+                        </View>    
                     }
                 </View>    
                 
@@ -237,7 +275,7 @@ const styles = StyleSheet.create({
         //alignSelf
         //flexWrap: "wrap"
         //alignContent
-        height: Dimensions.get("window").height - 140,
+        height: Dimensions.get("window").height ,
         backgroundColor: '#F8F8FA',
         //alignItems: 'center',
         //justifyContent: 'center',
@@ -256,8 +294,8 @@ const styles = StyleSheet.create({
         marginRight: 10
     },
     booksListContainer: {
-        paddingTop: 15,
-        
+        marginTop: 15,
+        paddingBottom: 170
     },
     searchText: {
         flex: 1,
@@ -270,22 +308,33 @@ const styles = StyleSheet.create({
         width: 40,
         marginBottom: 8
     },
-    error: {
+    errorContainer: {
         padding: 15,
         width: '100%',
-        flexDirection: "row",
-        justifyContent: "center",
+        alignItems: "center",
         backgroundColor: '#e37f7f',
         textAlign: "center",
-        borderRadius: 30,
+        justifyContent: "center"
+
+    },
+    refreshContainer: {
+        marginTop: 10,
+        flexDirection: "row",
+        justifyContent: "center",
+    },
+    infoContainer: {
+        paddingVertical: 15,
+        paddingHorizontal: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
     },
     info: {
         padding: 15,
-        width: '100%',
-        flexDirection: "row",
         justifyContent: "center",
         textAlign: "center",
         borderRadius: 30,
+        fontSize: 18
     },
 
     containerSpinner: {
@@ -307,6 +356,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center', 
         alignItems: 'center',
         opacity: 1 ,
+        marginBottom: 170
         //backgroundColor: '#0000FF'
     }
 });

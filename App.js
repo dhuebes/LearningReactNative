@@ -1,98 +1,128 @@
-import React, { Component, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { render } from 'react-dom';
-import api from './src/services/api';
-import Header from './src/components/Header';
-import SubHeader from './src/components/SubHeader';
-import ProductList from './src/components/ProductList';
-import Tabs from './src/components/Tabs';  
-
-import Icon from 'react-native-vector-icons/FontAwesome';
-import { Feather } from '@expo/vector-icons'
-import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { AsyncStorage } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { createStackNavigator } from '@react-navigation/stack';
-import BookDetail from './src/components/BookDetail';
+import AppNavigation from './src/components/AppNavigation';
 
-const Tab = createBottomTabNavigator();
+import Amplify, { Auth } from 'aws-amplify';
+import amplifyConfig from './src/amplify-config';
+Amplify.configure(amplifyConfig);
 
-function MyFavBooks({ navigation }) {
-  return (
-    <View>
-      <ProductList findNewBook={false} navigation={navigation} showAllBooks={false}></ProductList>
-    </View>
-  );
-}
-
-function MyAllFavBooks({ navigation }) {
-  return (
-    <View>
-      <ProductList findNewBook={false} navigation={navigation} showAllBooks={true}></ProductList>
-    </View>
-  );
-}
+import Signin from './src/components/Auth/Signin';
+import Signup from './src/components/Auth/Signup';
+import Confirmation from './src/components/Auth/Confirmation';
+import ForgotPassword from './src/components/Auth/ForgotPassword';
 
 const Stack = createStackNavigator();
 export const navigationRef = React.createRef();
 
+function AppLogin(props) {
 
-function AppNavigation() {
-  const [showAllBooks, setshowAllBooks] = useState(false);
-
+  //console.log(props);
   return (
-    <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator initialRouteName="Meus Livros">
-        <Stack.Screen 
-          name="Meus Livros" 
-          component={showAllBooks ? MyAllFavBooks : MyFavBooks} 
-          options={{
-              headerTitleAlign: 'center',
-              headerRight: () => (
-                <TouchableOpacity>
-                  <Feather name="book-open" size={28} style={styles.headerIcon} onPress={() => setshowAllBooks(!showAllBooks)}/>
-                </TouchableOpacity>
-              )
-          }}
-        />
+      <Stack.Navigator initialRouteName="Signin">
+          <Stack.Screen name="Signin" component={Signin} 
+            options={ 
+                {headerShown: false}
+            }
+            initialParams={{ handleSetSession: props.handleSetSession }}
+          />
 
-        <Stack.Screen name="Buscar" component={ProductList} 
-          options={ 
-              {headerLeft: null},
-              {headerTitleAlign: 'center'}       
-          }
-          extra
-        />
+          <Stack.Screen name="Signup" component={Signup} 
+            options={ 
+                {headerShown: false}
+            }
+          />    
 
-        <Stack.Screen name="Detalhe" component={BookDetail} 
-          options={ 
-              {headerTitleAlign: 'center'}
-          }
-        />
+          <Stack.Screen name="Confirmation" component={Confirmation} 
+            options={ 
+                {headerShown: false}
+            }
+          />      
+
+          <Stack.Screen name="ForgotPassword" component={ForgotPassword} 
+            options={ 
+                {headerShown: false}
+            }
+          />
       </Stack.Navigator>
-      <Tabs nav={navigationRef}></Tabs>
-    </NavigationContainer>
-  );
+  )    
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F8FA',
-    marginTop: 40
-  },
-
-  headerIcon: {
-    marginRight: 20,
+export default class App extends React.Component {
+  state = {
+    session: null,
+    loaded: false
   }
 
-});
+  constructor(props) {
+    super(props);
+    this._bootstrapAsync();
+    
+    this._clearSession = this._clearSession.bind(this);
+    this._setSession = this._setSession.bind(this);
+  }
 
-export default class App extends React.Component {
-  render() {
+	_bootstrapAsync = async () => {
+		try {
+      let session = await Auth.currentSession();
+
+      let userData = await Auth.currentAuthenticatedUser();
+      //console.log(userData.attributes);
+      AsyncStorage.setItem('@socialbook:userData:userId', userData.username);
+      AsyncStorage.setItem('@socialbook:userData', JSON.stringify(userData.attributes));
+      this.setState({session: session});
+      this.setState({loaded: true});
+		} catch (error) {
+      this.setState({loaded: true});
+			console.log('Current Session Error:',error);
+		}
+	}
+
+  getCurrSession = async () => {
+    return await Auth.currentSession();
+  }
+
+  _clearSession() {
+    //alert('aa');
+    AsyncStorage.clear();
+    //AsyncStorage.setItem('@socialbook:userData:userId', undefined);
+    //AsyncStorage.setItem('@socialbook:userData', undefined);
+    this.setState({session: null});
+  }
+
+  _setSession(session) {
+
+    Auth.currentAuthenticatedUser()
+        .then(userData => { 
+          //console.log(userData);
+          AsyncStorage.setItem('@socialbook:userData:userId', userData.username);
+          AsyncStorage.setItem('@socialbook:userData', JSON.stringify(userData.attributes));
+          this.setState({session: session});
+        })
+        .catch(err => { this.setState({ errorMessage: err.message }) });
+    
+  }
+
+  render() {              
+    let layout;
+    if (this.state.loaded) {
+      //console.log(this.state.session);
+      if (this.state.session) {
+        layout = <AppNavigation navigationRef={navigationRef} handleClearSession={this._clearSession}/>
+      } else {
+        layout = <AppLogin handleSetSession={this._setSession}/>
+      }     
+    }          
+                        
     return (
-        <AppNavigation/>
+      <SafeAreaProvider>
+        <NavigationContainer ref={navigationRef}>{layout}</NavigationContainer>
+      </SafeAreaProvider>
     );
   }
 }
+
+//export default withAuthenticator(App);

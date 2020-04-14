@@ -1,5 +1,5 @@
 import React, { Component, useEffect } from 'react'
-import { View, Image, StyleSheet, Text } from 'react-native'
+import { View, StyleSheet, Text, AsyncStorage } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler';
 import SubHeader from '../SubHeader';
 import BookOptions from '../BookOptions';
@@ -9,16 +9,27 @@ export default class BookDetail extends Component {
     state = {
         errorMessage : null,
         infoMessage : null,
+        userId: null
     };
 
     constructor(props) {
         super(props);
+        this._bootstrapAsync();
     }
+
+	_bootstrapAsync = async () => {
+		try {
+            let userId = await AsyncStorage.getItem('@socialbook:userData:userId');
+            this.state.userId = userId;
+		} catch (error) {
+			console.log('Error getting user:',error);
+		}
+	}
 
     addClickButton = async () => {
         try {
             const response = await api.post('https://jni93up6uf.execute-api.us-east-1.amazonaws.com/default/addFavBook', {
-                userId: '0',
+                userId: this.state.userId,
                 id: this.props.route.params.product.id,
                 status: 0,
             });
@@ -36,12 +47,11 @@ export default class BookDetail extends Component {
     removeClickButton = async () => {
         try {
             const response = await api.delete('https://b2e4mzteu3.execute-api.us-east-1.amazonaws.com/default/removeFavBook', {
-                userId: "0",
+                userId: this.state.userId,
                 id: this.props.route.params.product.id,
             });
             
-            const nav = this.props.route.params.navigation;
-            nav.navigate('Meus Livros');
+            this.props.route.params.navigation.navigate('Meus Livros');
             //alert(JSON.stringify(response));
             //this.setState({ products: response.data.books });
         } catch (response) {

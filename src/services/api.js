@@ -9,6 +9,7 @@ api.addResponseTransform(response => {
 
 api.addAsyncRequestTransform(request => async() => {
     request.headers['Content-Type'] = 'application/json';
+    request.headers['x-api-key'] = 'vK6EVFdaD86do9GypIkFR10bwG8a8b1l1K6iXJzk';
     // aqui tbm vai o authorization
 });
 

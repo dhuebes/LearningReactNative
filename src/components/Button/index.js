@@ -39,7 +39,6 @@ const styles = StyleSheet.create({
     'text-outline': {
         color: '#FF9982'
     },
-
 });
 
 export default Button;

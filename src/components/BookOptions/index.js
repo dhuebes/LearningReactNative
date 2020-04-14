@@ -1,5 +1,5 @@
 import React, { Component, useState, useEffect } from 'react'
-import { View, StyleSheet, Text } from 'react-native'
+import { View, StyleSheet, Text, AsyncStorage } from 'react-native'
 import { useRoute} from '@react-navigation/native';
 import  Button  from '../Button/index';
 import api from '../../services/api';
@@ -9,6 +9,7 @@ export default function BookOptions() {
     const route = useRoute();
     const [selectedButton, setSelectedButton] = useState(0);
     const [errorMessage, setErrorMessage] = useState(null);
+    const [userId, setUserId] = useState(null);
 
     async function clickButton(status) {
         setErrorMessage(null);
@@ -17,7 +18,7 @@ export default function BookOptions() {
 
         try {
             const response = await api.post('https://jni93up6uf.execute-api.us-east-1.amazonaws.com/default/addFavBook', {
-                userId: '0',
+                userId: userId,
                 id: route.params.product.id,
                 status: status
             });
@@ -27,17 +28,21 @@ export default function BookOptions() {
             //alert(JSON.stringify(response));
             //this.setState({ products: response.data.books });
         } catch (response) {
-            //alert(JSON.stringify(response.message));
+            //alert(JSON.stringify(response));
             setSelectedButton(selectedButtonAux);
-            setErrorMessage('Não foi possível gravar, tente novamente.\nErro: ' + response.originalError.message);
+            let message = response.originalError ? response.originalError.message : response.message;
+            setErrorMessage('Não foi possível gravar, tente novamente.\nErro: ' + message);
             console.log(response.message);
             //this.setState({  });
         }        
     }
 
-    function setStatus() {
+	//init = async () => {
+    async function setStatus() {
         //console.log(route.params.product);
         setSelectedButton(route.params.product.status);
+        let userId = await AsyncStorage.getItem('@socialbook:userData:userId');
+        setUserId(userId);
     }
 
     useEffect(() => {
