@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import { View, Image, StyleSheet, Text, Dimensions } from 'react-native' 
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Feather } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -9,8 +10,11 @@ const Product = ({ product/*: { image, title, description, price }*/, navigation
     <TouchableOpacity 
         style={styles.container} 
         onPress={() => navigation.push('Detalhe', {product: product, favBook: favBook, navigation: navigation})}>
-        <View style={[styles.container, product.status == 2 ? {opacity: 0.1} : {}]} >
-            <View style={styles.imageContainer}>
+        <View style={styles.container} >
+            { product.status == 2 &&
+                <Feather name="check-circle" size={16} style={styles.iconRead}/>
+            }            
+            <View style={[styles.imageContainer, product.status == 2 ? { opacity: 0.4 } : {}]}>
             <Image source={{ uri : product.thumbnail }} style={styles.image}/>
             </View>
 
@@ -18,7 +22,7 @@ const Product = ({ product/*: { image, title, description, price }*/, navigation
                 <Text>{favBook}</Text>
                 <Text style={styles.title}>{product.title}</Text>
                 <Text style={styles.autor}>{product.authors}</Text>
-                <Text style={styles.pageNumber}>{product.pageCount}</Text>
+                <Text style={styles.pageNumber}>{product.pageCount} pg.</Text>
 
             </View>
         </View>
@@ -71,6 +75,14 @@ const styles = StyleSheet.create({
 
     imageContainer: {
         padding: 15
+    },
+
+    iconRead: {
+        position: "absolute",
+        right: 15,
+        top: 15,
+        opacity: 0.7,
+        color: 'green'
     }
 });
 
